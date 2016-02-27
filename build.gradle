@@ -1,0 +1,34 @@
+apply plugin: 'kotlin'
+
+group = 'com.octarine'
+version = '0.5'
+
+repositories { mavenCentral() }
+
+buildscript {
+    ext.kotlin_version = '1.0.0'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile 'org.ow2.asm:asm-debug-all:5.0.4'
+    compile 'net.sf.jopt-simple:jopt-simple:4.9'
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "com.octarine.simpledeobf.Main"
+    }
+
+    configurations.compile.each { dep ->
+        from(project.zipTree(dep)){
+            exclude 'META-INF', 'META-INF/**'
+        }
+    }
+}
