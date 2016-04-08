@@ -1,7 +1,7 @@
 apply plugin: 'kotlin'
 
 group = 'com.octarine'
-version = '0.5'
+version = '0.6'
 
 repositories { mavenCentral() }
 
@@ -19,6 +19,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile 'org.ow2.asm:asm-debug-all:5.0.4'
     compile 'net.sf.jopt-simple:jopt-simple:4.9'
+    compile 'com.nothome:javaxdelta:2.0.1'
 }
 
 jar {

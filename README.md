@@ -35,9 +35,18 @@ to deobfuscate overridden methods whose declaring classes or interfaces are
 
    When in doubt, try using a Minecraft jar of the proper namespace.
 * `--defaultPkg` move all classes from the default package into this one. Having
-classes in the default package will mess with source attachment in the IDE.
+classes in the default package can mess with source attachment in the IDE.
 * `--forcePublic` make all fields, methods and inner classes public. The
 poor man's access transformer.
+* `--xdeltaPrefix` Prefix for xdelta files.
+* `--xdeltaPostfix` Postfix for xdelta files. Must be used together with the
+previous option.
+
+   Files that match the given pre/postfixes will be interpreted as patches.
+   The same filename with pre/postfixes stripped from it will be searched for
+   in the reference jars. If found, the patch will be applied to this file
+   and the result used as if the patched version had been read from the
+   input jar.
 * `--help` or `-?` displays a quick overview of these options.
 
 Have your favourite brand of decompiler ready, and be prepared to dig through
@@ -66,7 +75,6 @@ java -jar simpledeobf-0.5.jar
 --ref h:\Minecraft\.gradle\caches\minecraft\net\minecraft\minecraft_merged\1.8.8\minecraft_merged-1.8.8.jar
 --map="CL: bet$1 net/minecraft/client/entity/AbstractClientPlayer$1"
 --map="CL: b$8 net/minecraft/crash/CrashReport$8"
---defaultPkg optifineroot
 --forcePublic
 ```
 This will give you a jar with the `stable_20` mappings. The 2 `map` options are
@@ -106,3 +114,28 @@ fine under IDEA, which allows you to switch between sources on the fly if multip
 jar files declare a class. A popup comes up saying *"Alternative source available
 for the class blah blah blah"*, and you can switch to the OptiFine jar, which
 contains the class actually executing.
+
+### OptiFine H5 and beyond
+
+Starting with release H5, OptiFine has adopted a patch-based approach. Instead of
+replacing the impacted class files with alternative ones, it supplies patches in
+the *xdelta* format that are applied at runtime.
+
+Instead of transforming xdelta files, simpledeobf is able to create classic
+replacement-style deobfuscated jar files by applying the patches against the
+original Minecraft jar. Again, you'll need to create a class transformer that is
+able to load it [like this](https://github.com/octarine-noise/BetterFoliage/blob/abf037d8a9640594a76b9f2524885da6f440bd41/src/main/kotlin/optifine/OptifineTweakerDevWrapper.kt).
+
+Here is the example command line I use to deobfuscate OptiFine for 1.9.
+```
+java -jar simpledeobf-0.6.jar
+--input h:\Minecraft\mods\obf\OptiFine_1.9.0_HD_U_B2_pre.jar
+--output h:\Minecraft\mods\mcp\OptiFine_1.9.0_HD_U_B2_pre-dev.jar
+--mapFile h:\Minecraft\.gradle\caches\minecraft\de\oceanlabs\mcp\mcp_snapshot\20160406\srgs\notch-mcp.srg
+--ref h:\Minecraft\.gradle\caches\minecraft\net\minecraft\minecraft\1.9\minecraft-1.9.jar
+--forcePublic
+--xpatchPrefix="patch/"
+--xpatchPostfix=".xdelta"
+```
+
+Note the use of the regular `minecraft` binary, instead of `minecraft_merged`.
