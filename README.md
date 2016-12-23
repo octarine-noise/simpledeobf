@@ -134,8 +134,8 @@ java -jar simpledeobf-0.6.jar
 --mapFile h:\Minecraft\.gradle\caches\minecraft\de\oceanlabs\mcp\mcp_snapshot\20160406\srgs\notch-mcp.srg
 --ref h:\Minecraft\.gradle\caches\minecraft\net\minecraft\minecraft\1.9\minecraft-1.9.jar
 --forcePublic
---xpatchPrefix="patch/"
---xpatchPostfix=".xdelta"
+--xdeltaPrefix="patch/"
+--xdeltaPostfix=".xdelta"
 ```
 
 Note the use of the regular `minecraft` binary, instead of `minecraft_merged`.
