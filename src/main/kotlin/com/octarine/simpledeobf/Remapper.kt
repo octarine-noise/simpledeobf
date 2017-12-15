@@ -98,7 +98,7 @@ class PublicAccessRemappingClassAdapter(cv: ClassVisitor, remapper: Remapper, va
     }
 
     override fun visitInnerClass(name: String?, outerName: String?, innerName: String?, access: Int) {
-        super.visitInnerClass(name, outerName, innerName, if (force) access.toPublic else access)
+        super.visitInnerClass(name, outerName, remapper.mapType(innerName), if (force) access.toPublic else access)
     }
 }
 
