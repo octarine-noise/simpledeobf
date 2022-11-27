@@ -2,18 +2,25 @@
 package com.octarine.simpledeobf
 
 import com.nothome.delta.GDiffPatcher
+
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream
+
 import joptsimple.OptionException
 import joptsimple.OptionParser
+
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
+
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
+
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+
+import kotlin.system.exitProcess
 
 fun main(args : Array<String>) {
 
@@ -34,27 +41,27 @@ fun main(args : Array<String>) {
 
         if (options.has(help)) {
             parser.printHelpOn(System.out)
-            System.exit(0)
+            exitProcess(0)
         }
 
         if (options.valuesOf(outputFile).size != 1) {
             println("Maximum of 1 output file is allowed")
-            System.exit(1)
+            exitProcess(1)
         }
 
         if (options.valuesOf(defaultPkg).size > 1) {
             println("Maximum of 1 default package is allowed")
-            System.exit(1)
+            exitProcess(1)
         }
 
         if (options.has(xdeltaPrefix) != options.has(xdeltaPostfix)) {
             println("xdeltaPrefix and xdeltaPostfix need to be defined together")
-            System.exit(1)
+            exitProcess(1)
         }
 
         if (options.valuesOf(xdeltaPrefix).size > 1 || options.valuesOf(xdeltaPostfix).size > 1) {
             println("Only 1 xpatch prefix and postfix is allowed")
-            System.exit(1)
+            exitProcess(1)
         }
 
         val doPatchProcessing = options.valuesOf(xdeltaPrefix).size == 1
@@ -100,16 +107,17 @@ fun main(args : Array<String>) {
                     srcName.endsWith(options.valueOf(xdeltaPostfix)!!) &&
                     srcName.startsWith(options.valueOf(xdeltaPrefix)!!)) {
                     // patch file - try to patch a matching file from a reference JAR
-                    print("   patching: ${srcName}")
+                    print("   patching: $srcName")
                     val patchBytes = srcBytes + 0   // make sure there's an EOF marker
                     val origName = srcEntry.name.subSequence(
                         options.valueOf(xdeltaPrefix)!!.length,
                         srcEntry.name.length - options.valueOf(xdeltaPostfix)!!.length
                     ) as String
-                    val origBytes = (options.valuesOf(inputFile) + options.valuesOf(referenceFile)).map {
-                        val refFile = ZipFile(it)
-                        refFile.getEntry(origName)?.let { refFile.getInputStream(it).readBytes() }
-                    }.filterNotNull().firstOrNull()
+                    val origBytes =
+                        (options.valuesOf(inputFile) + options.valuesOf(referenceFile)).firstNotNullOfOrNull { it ->
+                            val refFile = ZipFile(it)
+                            refFile.getEntry(origName)?.let { refFile.getInputStream(it).readBytes() }
+                        }
                     if (origBytes != null) {
                         srcName = origName
                         srcBytes = GDiffPatcher().patch(origBytes, patchBytes)
@@ -119,10 +127,10 @@ fun main(args : Array<String>) {
                     }
                 }
                 if (srcName.endsWith(".class")) {
-                    print("   processing: ${srcName} ")
+                    print("   processing: $srcName ")
                     writeDeobfedClass(srcBytes, srcEntry.name)
                 } else {
-                    println("   copying: ${srcName}")
+                    println("   copying: $srcName")
                     destJar.putNextEntry(ZipEntry(srcName))
                     ByteInputStream(srcBytes, srcBytes.size).copyTo(destJar)
                     destJar.closeEntry()
@@ -134,9 +142,9 @@ fun main(args : Array<String>) {
         destJar.close()
     } catch(e: OptionException) {
         println(e.message)
-        System.exit(1)
+        exitProcess(1)
     } catch(e: FileNotFoundException) {
         println(e.message)
-        System.exit(1)
+        exitProcess(1)
     }
 }
