@@ -4,22 +4,22 @@ import org.objectweb.asm.*
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.RemappingClassAdapter
 import org.objectweb.asm.tree.ClassNode
+
 import java.io.File
-import java.util.*
 import java.util.zip.ZipFile
 
-class SimpleRemapper(val defaultPkg: String?) : Remapper() {
+class SimpleRemapper(private val defaultPkg: String?) : Remapper() {
 
-    val String.partOwner: String get() = this.substring(0, this.lastIndexOf("/"))
-    val String.partName: String get() = this.substring(this.lastIndexOf("/") + 1)
+    private val String.partOwner: String get() = this.substring(0, this.lastIndexOf("/"))
+    private val String.partName: String get() = this.substring(this.lastIndexOf("/") + 1)
 
-    val mappings = HashMap<String, ClassMapping>()
+    private val mappings = HashMap<String, ClassMapping>()
     val hierarchy = HashMap<String, ClassHierarchy>()
     val hierarchyReader = SimpleHierarchyReader()
 
     inner class SimpleHierarchyReader : ClassVisitor(Opcodes.ASM5) {
         override fun visit(version: Int, access: Int, name: String, signature: String?, superName: String?, interfaces: Array<out String>?) {
-            hierarchy.put(name, ClassHierarchy(superName, interfaces))
+            hierarchy[name] = ClassHierarchy(superName, interfaces)
         }
 
         fun visitAllFromFile(file: File) {
@@ -49,19 +49,19 @@ class SimpleRemapper(val defaultPkg: String?) : Remapper() {
         if (tokens[0] == "MD:") addMethodMapping(tokens[1].partOwner, tokens[1].partName, tokens[2], tokens[3].partOwner, tokens[3].partName, tokens[4])
     }
 
-    fun addClassMapping(fromName: String, toName: String) {
-        mappings.put(fromName, ClassMapping(toName))
+    private fun addClassMapping(fromName: String, toName: String) {
+        mappings[fromName] = ClassMapping(toName)
     }
 
-    fun addFieldMapping(fromOwner: String, fromName: String, toOwner: String, toName: String) {
+    private fun addFieldMapping(fromOwner: String, fromName: String, toOwner: String, toName: String) {
         mappings[fromOwner]?.fields?.put(fromName, toName)
     }
 
-    fun addMethodMapping(fromOwner: String, fromName: String, fromDesc: String, toOwner: String, toName: String, toDesc: String) {
+    private fun addMethodMapping(fromOwner: String, fromName: String, fromDesc: String, toOwner: String, toName: String, toDesc: String) {
         mappings[fromOwner]?.methods?.put(fromName to fromDesc, toName)
     }
 
-    override fun map(typeName: String): String? = (mappings[typeName]?.mappedName ?: typeName).let {
+    override fun map(typeName: String): String = (mappings[typeName]?.mappedName ?: typeName).let {
         if (it.contains("/") || defaultPkg == null) it else "$defaultPkg/$it"
     }
 
@@ -74,7 +74,7 @@ class SimpleRemapper(val defaultPkg: String?) : Remapper() {
     override fun mapMethodName(owner: String, name: String, desc: String) =
         mapMethodNameInternal(owner, name, desc) ?: name
 
-    fun mapMethodNameInternal(owner: String, name: String, desc: String): String? {
+    private fun mapMethodNameInternal(owner: String, name: String, desc: String): String? {
         mappings[owner]?.let { it.methods[name to desc] }?.let { return it }
         val h = hierarchy[owner] ?: return null
         if (h.superName != null) mapMethodNameInternal(h.superName, name, desc)?.let { return it }
@@ -85,9 +85,9 @@ class SimpleRemapper(val defaultPkg: String?) : Remapper() {
     }
 }
 
-class PublicAccessRemappingClassAdapter(cv: ClassVisitor, remapper: Remapper, val force: Boolean) : RemappingClassAdapter(cv, remapper) {
+class PublicAccessRemappingClassAdapter(cv: ClassVisitor, remapper: Remapper, private val force: Boolean) : RemappingClassAdapter(cv, remapper) {
 
-    val Int.toPublic: Int get() = (this and 0xFFF8) or 0x1
+    private val Int.toPublic: Int get() = (this and 0xFFF8) or 0x1
 
     override fun visitMethod(access: Int, name: String?, desc: String?, signature: String?, exceptions: Array<out String>?): MethodVisitor? {
         return super.visitMethod(if (force) access.toPublic else access, name, desc, signature, exceptions)
@@ -107,4 +107,4 @@ class ClassMapping(val mappedName: String) {
     val methods = HashMap<Pair<String, String>, String>()
 }
 
-class ClassHierarchy(val superName: String?, val interfaces: Array<out String>?) {}
+class ClassHierarchy(val superName: String?, val interfaces: Array<out String>?)
